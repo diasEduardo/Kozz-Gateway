@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { registerSocketEventHandlers } from './Events/Handling';
-import { timedDelay } from './Util/index';
+import keytar from 'keytar';
+import { exec } from 'child_process';
 
 type InitServerOptions = {
 	bufferSizeInMB: number;
@@ -24,18 +25,28 @@ export const createServer = ({ bufferSizeInMB, port }: InitServerOptions) => {
 	return io;
 };
 
+const runBoundarySignatureScript = () => {
+	exec('node ./scripts/module_signature.js kozz-iwac', (error, stdout, stderr) => {
+		if (error) {
+			console.warn(`Error executing script: ${error.message}`);
+			return;
+		}
+		if (stderr) {
+			console.warn(`Script stderr: ${stderr}`);
+			return;
+		}
+
+		console.log('Adding introduction payload to keychain');
+
+		keytar.setPassword('kozz-iwac', 'introduction', stdout);
+	});
+};
+
+runBoundarySignatureScript();
+
 createServer({
 	bufferSizeInMB: 256,
 	port: 4521,
 });
 
-console.log("Gateway ready")
-
-/*
-timedDelay({
-    hours:12,
-    minutes:0,
-    seconds:0,
-    miliseconds:0
-})
-	*/
+console.log('Gateway ready');
